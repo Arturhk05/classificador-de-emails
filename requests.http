@@ -1,0 +1,7 @@
+### Classificação de Email - Exemplo de Requisição HTTP
+POST http://localhost:5000/api/classify
+Content-Type: application/json
+
+{
+  "email_text": "Assunto: RE: Conclusão do Projeto Alfa Corpo: Prezado time, Gostaria apenas de registrar meu agradecimento formal a todos os envolvidos na entrega do Projeto Alfa. Foi um prazer trabalhar com uma equipe tão dedicada e profissional. Os resultados que alcançamos juntos foram fantásticos! Um abraço e um ótimo final de semana a todos. Atenciosamente, Juliana Costa Diretora de Parcerias"
+}
