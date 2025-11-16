@@ -4,36 +4,35 @@ Aplicação web para classificação de e-mails usando inteligência artificial 
 
 ## Ideia inicial
 
-[!Imagem da ideia](./public/excalidraw1.png)
+![Imagem da ideia](./public/excalidraw1.png)
 
 ## Wireframe
 
 ### Tela inicial
 
-[!Tela 1](./public/excalidraw3.png)
+![Tela 1](./public/excalidraw3.png)
 
 ### Tela de loading
 
-[!Tela 2](./public/excalidraw2.png)
+![Tela 2](./public/excalidraw2.png)
 
 ### Tela do resultado
 
-[!Tela 3](./public/excalidraw4.png)
+![Tela 3](./public/excalidraw4.png)
 
 ## Protótipo do Figma
 
 ### Tela inicial
 
-[!Tela 1](./public/figma1.png)
+![Tela 1](./public/figma1.png)
 
 ### Tela de loading
 
-[!Tela 2](./public/figma2.png)
+![Tela 2](./public/figma2.png)
 
 ### Tela do resultado
 
-[!Tela 3](./public/figma3.png)
-
+![Tela 3](./public/figma3.png)
 
 ## Links
 
