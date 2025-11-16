@@ -1,11 +1,637 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-</head>
-<body>
-  <h1>Olá Mundo!</h1>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classificador de E-Mails</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      tailwind.config = {
+        theme: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        },
+      };
+    </script>
+    <style>
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .animate-spin {
+        animation: spin 1s linear infinite;
+      }
+      @keyframes slideInRight {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideOutRight {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+      }
+      .animate-slide-in {
+        animation: slideInRight 0.3s ease-out;
+      }
+      .animate-slide-out {
+        animation: slideOutRight 0.3s ease-out forwards;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4 font-sans">
+    <!-- Container de Toasts -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-[9999] space-y-3 max-w-sm"></div>
+
+    <div
+      id="dropZoneModal"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 pointer-events-none"
+    >
+      <div class="rounded-2xl p-8 text-center max-w-md">
+        <h2 class="text-2xl font-bold text-gray-200 mb-2">Solte o arquivo aqui!</h2>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm p-5 w-full max-w-md">
+      <h1 class="text-2xl font-bold text-gray-700 text-center mb-6">Classificador de E-Mails</h1>
+
+      <!-- Seção de Input (inicialmente visível) -->
+      <div id="inputSection" class="">
+        <div class="flex gap-2 justify-center mb-6">
+          <button
+            class="tab-btn active px-3 py-1 bg-red-500 text-white text-xs font-semibold rounded transition-colors"
+            data-tab="pdf"
+          >
+            PDF
+          </button>
+          <button
+            class="tab-btn inactive px-3 py-1 bg-gray-300 text-gray-700 text-xs font-semibold rounded transition-colors"
+            data-tab="txt"
+          >
+            TXT
+          </button>
+        </div>
+
+        <div class="mb-6">
+          <input type="file" id="fileInput" accept=".pdf" class="hidden" />
+          <button
+            id="uploadBtn"
+            class="upload-btn mb-4 w-full py-3.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors"
+            onclick="document.getElementById('fileInput').click()"
+          >
+            Selecionar arquivo PDF
+          </button>
+          <p id="helpText" class="help-text text-center text-gray-400 text-xs mt-3">arraste e solte o PDF aqui</p>
+        </div>
+
+        <div class="flex items-center gap-3 my-6">
+          <div class="flex-1 h-px bg-gray-300"></div>
+          <span class="text-gray-500 text-xs">OU</span>
+          <div class="flex-1 h-px bg-gray-300"></div>
+        </div>
+
+        <div class="mb-3">
+          <label class="input-label block text-gray-700 text-xs font-semibold mb-1">Cole o conteúdo do E-mail:</label>
+          <textarea
+            id="emailContent"
+            placeholder="Insira o conteúdo do e-mail aqui..."
+            class="w-full min-h-32 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 text-gray-700 text-sm resize-none transition disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+          ></textarea>
+        </div>
+
+        <button
+          class="analyze-btn w-full py-3.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          id="analyzeBtn"
+          onclick="analyzeEmail()"
+        >
+          Analisar E-mail
+        </button>
+      </div>
+
+      <!-- Seção de Resultados (inicialmente oculta) -->
+      <div id="resultSection" class="hidden">
+        <div class="mb-5">
+          <p class="mb-2 text-gray-600 text-sm text-center">
+            Categoria: <span id="resultCategory" class="font-bold text-red-500">-</span>
+          </p>
+          <div class="relative">
+            <p class="text-gray-600 text-xs mb-1">Resposta sugerida:</p>
+            <textarea
+              id="resultResponse"
+              readonly
+              class="w-full h-40 p-3 pr-10 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-xs resize-none"
+            >
+-</textarea
+            >
+            <button
+              onclick="copyToClipboardWithFeedback(this, document.getElementById('resultResponse').value)"
+              class="absolute top-5.5 right-2 text-gray-600 hover:text-gray-800 p-1.5 transition-all"
+              title="Copiar"
+            >
+              <i data-lucide="copy" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <button
+          class="analyze-btn w-full py-3.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors"
+          onclick="goBackToInput()"
+        >
+          Analisar outro E-mail
+        </button>
+
+        <div class="mt-6">
+          <p class="text-gray-600 text-xs mb-1">Email analisado:</p>
+          <div class="relative">
+            <textarea
+              id="resultEmail"
+              readonly
+              class="w-full h-40 p-3 pr-10 border border-gray-300 rounded-lg bg-gray-50 text-gray-400 text-xs resize-none"
+            >
+-</textarea
+            >
+            <button
+              onclick="copyToClipboardWithFeedback(this, document.getElementById('resultEmail').value)"
+              class="absolute top-0.5 right-2 text-gray-600 hover:text-gray-800 p-1.5 transition-all"
+              title="Copiar"
+            >
+              <i data-lucide="copy" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seção de Loading (inicialmente oculta) -->
+      <div id="loadingSection" class="hidden flex flex-col items-center justify-center py-16">
+        <i data-lucide="loader-circle" class="w-12 h-12 text-gray-600 mb-2 animate-spin"></i>
+        <p class="text-gray-400 text-lg">Analisando E-mail...</p>
+      </div>
+    </div>
+
+    <script>
+      // Funções de Toast
+      function showToast(message, type = 'error', duration = 3000) {
+        const toastContainer = document.getElementById('toastContainer');
+
+        // Determinar cores e ícone baseado no tipo
+        let bgColor = 'bg-red-500';
+        let icon = 'alert-circle';
+
+        if (type === 'success') {
+          bgColor = 'bg-green-500';
+          icon = 'check-circle';
+        } else if (type === 'warning') {
+          bgColor = 'bg-yellow-500';
+          icon = 'alert-triangle';
+        } else if (type === 'info') {
+          bgColor = 'bg-blue-500';
+          icon = 'info';
+        }
+
+        // Criar elemento do toast
+        const toast = document.createElement('div');
+        toast.className = `${bgColor} text-white p-4 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in`;
+        toast.innerHTML = `
+          <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
+          <span class="text-sm flex-1">${message}</span>
+          <button onclick="this.closest('.rounded-lg').remove()" class="text-white hover:text-gray-200 transition-colors">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        `;
+
+        toastContainer.appendChild(toast);
+
+        // Renderizar ícones Lucide
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+
+        // Auto remover após duration
+        if (duration > 0) {
+          setTimeout(() => {
+            toast.classList.add('animate-slide-out');
+            setTimeout(() => toast.remove(), 300);
+          }, duration);
+        }
+      }
+
+      function analyzeEmail() {
+        const fileInput = document.getElementById('fileInput');
+        const emailContent = document.getElementById('emailContent').value;
+
+        // Se há arquivo selecionado, processar o arquivo
+        if (fileInput.files && fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+
+          // Mostrar tela de loading
+          document.getElementById('inputSection').classList.add('hidden');
+          document.getElementById('loadingSection').classList.remove('hidden');
+
+          if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+            processTextFile(file);
+          } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+            processPdfFile(file);
+          }
+          return;
+        }
+
+        // Se não há arquivo, usar textarea
+        if (emailContent.trim() === '') {
+          showToast('Por favor, insira o conteúdo do e-mail ou selecione um arquivo', 'error');
+          return;
+        }
+
+        // Mostrar tela de loading
+        document.getElementById('inputSection').classList.add('hidden');
+        document.getElementById('loadingSection').classList.remove('hidden');
+
+        // Fazer POST para a API
+        fetch('http://localhost:5000/api/classify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email_text: emailContent,
+          }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error('Erro ao analisar o email');
+            }
+            return response.json();
+          })
+          .then((data) => {
+            displayResults(data, emailContent);
+          })
+          .catch((error) => {
+            console.error('Erro:', error);
+            showToast('Erro ao conectar com a API. Certifique-se de que o servidor está rodando.', 'error');
+            document.getElementById('loadingSection').classList.add('hidden');
+            document.getElementById('inputSection').classList.remove('hidden');
+          });
+      }
+
+      function displayResults(data, emailContent) {
+        document.getElementById('loadingSection').classList.add('hidden');
+        document.getElementById('inputSection').classList.add('hidden');
+        document.getElementById('resultSection').classList.remove('hidden');
+
+        const categoryElement = document.getElementById('resultCategory');
+        categoryElement.textContent = data.category;
+
+        // Mudar cor baseado na categoria
+        categoryElement.classList.remove('text-red-500', 'text-green-600');
+        if (data.category.toLowerCase() === 'produtivo') {
+          categoryElement.classList.add('text-green-600');
+        } else {
+          categoryElement.classList.add('text-red-500');
+        }
+
+        document.getElementById('resultResponse').value = data.response;
+        document.getElementById('resultEmail').value = emailContent;
+      }
+
+      function goBackToInput() {
+        document.getElementById('inputSection').classList.remove('hidden');
+        document.getElementById('resultSection').classList.add('hidden');
+        document.getElementById('emailContent').value = '';
+        document.getElementById('emailContent').disabled = false;
+        document.getElementById('emailContent').placeholder = 'Insira o conteúdo do e-mail aqui...';
+        document.getElementById('fileInput').value = '';
+
+        const uploadBtn = document.getElementById('uploadBtn');
+        uploadBtn.textContent = 'Selecionar arquivo PDF';
+
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Analisar E-mail';
+      }
+
+      function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+          alert('Copiado para a área de transferência!');
+        });
+      }
+
+      // Armazenar timeouts ativos para cada botão
+      const copyTimeouts = new Map();
+      const copyStates = new Map();
+
+      function copyToClipboardWithFeedback(button, text) {
+        // Se está em animação, ignora o clique
+        if (copyStates.get(button) === 'animating') {
+          return;
+        }
+
+        // Se já tem um timeout ativo, cancela
+        if (copyTimeouts.has(button)) {
+          clearTimeout(copyTimeouts.get(button));
+        }
+
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            const svg = button.querySelector('svg');
+
+            if (!svg) {
+              console.error('SVG não encontrado no botão');
+              return;
+            }
+
+            // Marcar como animando
+            copyStates.set(button, 'animating');
+
+            // Mudar para copy-check
+            svg.setAttribute('data-lucide', 'copy-check');
+            button.classList.add('text-green-600', 'hover:text-green-700');
+            button.classList.remove('text-gray-600', 'hover:text-gray-800');
+
+            // Re-renderizar com Lucide
+            if (typeof lucide !== 'undefined') {
+              lucide.createIcons();
+            }
+
+            // Voltar ao estado inicial após 3 segundos
+            const timeout = setTimeout(() => {
+              const currentSvg = button.querySelector('svg');
+              if (currentSvg) {
+                currentSvg.setAttribute('data-lucide', 'copy');
+              }
+              button.classList.remove('text-green-600', 'hover:text-green-700');
+              button.classList.add('text-gray-600', 'hover:text-gray-800');
+
+              // Re-renderizar com Lucide
+              if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+              }
+
+              // Marcar como não animando
+              copyStates.set(button, 'idle');
+              copyTimeouts.delete(button);
+            }, 3000);
+
+            copyTimeouts.set(button, timeout);
+          })
+          .catch((err) => {
+            console.error('Erro ao copiar:', err);
+            copyStates.set(button, 'idle');
+          });
+      }
+
+      // Atualizar texto do botão quando arquivo é selecionado
+      const fileInput = document.getElementById('fileInput');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const originalButtonText = uploadBtn.textContent;
+
+      function validateFileType(file) {
+        const acceptedTypes = fileInput.accept.split(',').map((type) => type.trim());
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        return acceptedTypes.includes(fileExtension);
+      }
+
+      fileInput.addEventListener('change', function () {
+        if (this.files && this.files.length > 0) {
+          const file = this.files[0];
+          if (!validateFileType(file)) {
+            showToast(`Por favor, selecione um arquivo válido. Tipos aceitos: ${this.accept}`, 'error');
+            this.value = '';
+            uploadBtn.textContent = originalButtonText;
+            document.getElementById('emailContent').disabled = false;
+            return;
+          }
+          const fileName = file.name;
+          uploadBtn.textContent = `✓ ${fileName}`;
+
+          // Desabilitar textarea quando arquivo é selecionado
+          document.getElementById('emailContent').disabled = true;
+          document.getElementById('emailContent').placeholder =
+            'Arquivo selecionado - clique em "Analisar E-mail" para processar';
+        } else {
+          uploadBtn.textContent = originalButtonText;
+          document.getElementById('emailContent').disabled = false;
+          document.getElementById('emailContent').placeholder = 'Insira o conteúdo do e-mail aqui...';
+        }
+      });
+
+      function processTextFile(file) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          const fileContent = e.target.result;
+
+          // Enviar para a API
+          fetch('http://localhost:5000/api/classify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email_text: fileContent,
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error('Erro ao analisar o arquivo');
+              }
+              return response.json();
+            })
+            .then((data) => {
+              displayResults(data, fileContent);
+            })
+            .catch((error) => {
+              console.error('Erro:', error);
+              showToast('Erro ao processar o arquivo. Tente novamente.', 'error');
+              document.getElementById('loadingSection').classList.add('hidden');
+              document.getElementById('inputSection').classList.remove('hidden');
+            });
+        };
+
+        reader.onerror = function () {
+          console.error('Erro ao ler o arquivo');
+          showToast('Erro ao ler o arquivo TXT', 'error');
+          document.getElementById('loadingSection').classList.add('hidden');
+          document.getElementById('inputSection').classList.remove('hidden');
+        };
+
+        reader.readAsText(file);
+      }
+
+      function processPdfFile(file) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          const arrayBuffer = e.target.result;
+
+          // Usar PDF.js para extrair texto
+          const pdf = pdfjsLib.getDocument({ data: arrayBuffer });
+          pdf.promise
+            .then(function (pdfDoc) {
+              let textContent = '';
+              let pagePromises = [];
+
+              // Extrair texto de cada página
+              for (let i = 1; i <= pdfDoc.numPages; i++) {
+                pagePromises.push(
+                  pdfDoc.getPage(i).then(function (page) {
+                    return page.getTextContent().then(function (text) {
+                      const pageText = text.items.map((item) => item.str).join(' ');
+                      return pageText;
+                    });
+                  })
+                );
+              }
+
+              // Aguardar todas as páginas serem processadas
+              Promise.all(pagePromises).then(function (pages) {
+                textContent = pages.join('\n');
+
+                // Enviar para a API
+                fetch('http://localhost:5000/api/classify', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    email_text: textContent,
+                  }),
+                })
+                  .then((response) => {
+                    if (!response.ok) {
+                      throw new Error('Erro ao analisar o arquivo');
+                    }
+                    return response.json();
+                  })
+                  .then((data) => {
+                    displayResults(data, textContent);
+                  })
+                  .catch((error) => {
+                    console.error('Erro:', error);
+                    showToast('Erro ao processar o arquivo PDF. Tente novamente.', 'error');
+                    document.getElementById('loadingSection').classList.add('hidden');
+                    document.getElementById('inputSection').classList.remove('hidden');
+                  });
+              });
+            })
+            .catch(function (error) {
+              console.error('Erro ao ler PDF:', error);
+              showToast('Erro ao ler o arquivo PDF. Certifique-se de que é um PDF válido.', 'error');
+              document.getElementById('loadingSection').classList.add('hidden');
+              document.getElementById('inputSection').classList.remove('hidden');
+            });
+        };
+
+        reader.onerror = function () {
+          console.error('Erro ao ler o arquivo');
+          showToast('Erro ao ler o arquivo PDF', 'error');
+          document.getElementById('loadingSection').classList.add('hidden');
+          document.getElementById('inputSection').classList.remove('hidden');
+        };
+
+        reader.readAsArrayBuffer(file);
+      }
+
+      // Drag and drop em toda a tela
+      const dropZoneModal = document.getElementById('dropZoneModal');
+      let dragCounter = 0;
+
+      document.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        dragCounter++;
+        if (dragCounter === 1) {
+          dropZoneModal.classList.remove('hidden');
+        }
+      });
+
+      document.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dragCounter--;
+        if (dragCounter === 0) {
+          dropZoneModal.classList.add('hidden');
+        }
+      });
+
+      document.addEventListener('dragover', (e) => {
+        e.preventDefault();
+      });
+
+      document.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragCounter = 0;
+        dropZoneModal.classList.add('hidden');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          const file = files[0];
+          if (!validateFileType(file)) {
+            showToast(`Por favor, solte um arquivo válido. Tipos aceitos: ${fileInput.accept}`, 'error');
+            return;
+          }
+          document.getElementById('fileInput').files = files;
+          const fileName = file.name;
+          uploadBtn.textContent = `✓ ${fileName}`;
+
+          // Desabilitar textarea quando arquivo é solto
+          document.getElementById('emailContent').disabled = true;
+          document.getElementById('emailContent').placeholder =
+            'Arquivo selecionado - clique em "Analisar E-mail" para processar';
+        }
+      });
+
+      // Tab switching
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', function () {
+          const tabType = this.dataset.tab;
+
+          document.querySelectorAll('.tab-btn').forEach((b) => {
+            b.classList.remove('active', 'bg-red-500', 'text-white');
+            b.classList.add('inactive', 'bg-gray-300', 'text-gray-700');
+          });
+          this.classList.remove('inactive', 'bg-gray-300', 'text-gray-700');
+          this.classList.add('active', 'bg-red-500', 'text-white');
+
+          // Alterar input de arquivo e textos
+          const fileInput = document.getElementById('fileInput');
+          const uploadBtn = document.getElementById('uploadBtn');
+          const helpText = document.getElementById('helpText');
+
+          if (tabType === 'pdf') {
+            fileInput.accept = '.pdf';
+            uploadBtn.textContent = 'Selecionar arquivo PDF';
+            helpText.textContent = 'arraste e solte o PDF aqui';
+          } else if (tabType === 'txt') {
+            fileInput.accept = '.txt';
+            uploadBtn.textContent = 'Selecionar arquivo TXT';
+            helpText.textContent = 'arraste e solte o TXT aqui';
+          }
+        });
+      });
+
+      // Inicializar ícones Lucide
+      lucide.createIcons();
+    </script>
+  </body>
 </html>
