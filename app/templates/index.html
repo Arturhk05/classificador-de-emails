@@ -269,7 +269,7 @@
         document.getElementById('loadingSection').classList.remove('hidden');
 
         // Fazer POST para a API
-        fetch('http://localhost:5000/api/classify', {
+        fetch('/api/classify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -444,7 +444,7 @@
           const fileContent = e.target.result;
 
           // Enviar para a API
-          fetch('http://localhost:5000/api/classify', {
+          fetch('/api/classify', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -510,7 +510,7 @@
                 textContent = pages.join('\n');
 
                 // Enviar para a API
-                fetch('http://localhost:5000/api/classify', {
+                fetch('/api/classify', {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
