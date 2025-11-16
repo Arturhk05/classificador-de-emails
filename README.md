@@ -1,6 +1,6 @@
 # Classificador de E-mails
 
-Aplicação web para classificação de e-mails usando inteligência artificial (OpenAI).
+[Aplicação](https://classificador-emails-096b702302b6.herokuapp.com/) web para classificação de e-mails usando inteligência artificial (OpenAI).
 
 ## Ideia inicial
 
