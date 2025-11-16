@@ -1,0 +1,9 @@
+Corpo: Olá, equipe de suporte,
+
+Estou tentando gerar o Relatório de Liquidação de Operações (RLO) referente ao dia de ontem (14/11) no portal e o sistema está retornando o erro "504 - Gateway Timeout".
+
+Já tentei limpar o cache e acessar por outro navegador, mas o problema persiste. Este é um documento crítico para nossa auditoria interna que precisa ser fechada hoje.
+
+Podem verificar o status do serviço de geração de relatórios e me dar uma estimativa de quando estará normalizado?
+
+Obrigado,
